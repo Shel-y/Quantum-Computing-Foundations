@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> AWS Quantum Simulator</title>
+    <style>
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #0d1117; 
+            color: #c9d1d9; 
+            text-align: center; 
+            margin: 0; padding: 40px;
+        }
+        h1 { color: #ff9900; letter-spacing: 1px; }
+        
+        .dashboard {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            width: 80%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        /* LA ESFERA DEL QUBIT */
+        .qubit-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            margin: 20px 0;
+        }
+
+        .qubit-sphere {
+            width: 120px; 
+            height: 120px;
+            border-radius: 50%;
+            
+            background: radial-gradient(circle at 30% 30%, #58a6ff, #002b59);
+            box-shadow: 0 0 20px #58a6ff;
+            transition: all 1.5s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+       
+        .superposition {
+          
+            background: radial-gradient(circle at 30% 30%, #bc8cff, #ff9900);
+            box-shadow: 0 0 40px #bc8cff, 0 0 80px #ff9900;
+            animation: pulse-spin 2s infinite alternate;
+        }
+
+        @keyframes pulse-spin {
+            0% { transform: scale(1) rotate(0deg); filter: hue-rotate(0deg); }
+            100% { transform: scale(1.15) rotate(15deg); filter: hue-rotate(30deg); }
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+        }
+        .prob-box { width: 45%; }
+        .bar-bg { background: #0d1117; border-radius: 8px; height: 24px; overflow: hidden; margin-top: 10px; border: 1px solid #30363d;}
+        .bar-fill { background: #58a6ff; height: 100%; width: 100%; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .bar-fill.super { background: linear-gradient(90deg, #bc8cff, #ff9900); }
+
+        button { 
+            background-color: #ff9900; color: #000; border: none; 
+            padding: 15px 30px; border-radius: 8px; font-size: 18px; 
+            font-weight: bold; cursor: pointer; transition: transform 0.2s, background 0.2s; 
+            margin-top: 30px;
+        }
+        button:hover { background-color: #e88b00; transform: scale(1.05); }
+        
+        #console-log { font-family: monospace; color: #7ee787; margin-top: 20px; min-height: 24px;}
+    </style>
+</head>
+<body>
+
+    <h1>Motor de Simulación Cuántica en AWS</h1>
+    
+    <div class="dashboard">
+        <p style="color: #8b949e; font-size: 18px;">Estado Actual del Qubit</p>
+        
+        <div class="qubit-container">
+            <div id="qubit" class="qubit-sphere">|0&rangle;</div>
+        </div>
+
+        <div id="console-log">> Sistema inicializado. Qubit en estado base (Clásico).</div>
+
+        <div class="stats">
+            <div class="prob-box">
+                <div>Probabilidad |0&rangle; (<span id="txt-prob0">100</span>%)</div>
+                <div class="bar-bg"><div id="bar0" class="bar-fill" style="width: 100%;"></div></div>
+            </div>
+            <div class="prob-box">
+                <div>Probabilidad |1&rangle; (<span id="txt-prob1">0</span>%)</div>
+                <div class="bar-bg"><div id="bar1" class="bar-fill" style="width: 0%;"></div></div>
+            </div>
+        </div>
+
+        <button id="runBtn">⚡ Aplicar Compuerta Hadamard (H)</button>
+    </div>
+
+    <script>
+     
+        const LAMBDA_URL = 'https://vagun7dlprbcbg7y4rxhjrokha0kibax.lambda-url.us-east-1.on.aws/'; 
+
+        const qubit = document.getElementById('qubit');
+        const bar0 = document.getElementById('bar0');
+        const bar1 = document.getElementById('bar1');
+        const txt0 = document.getElementById('txt-prob0');
+        const txt1 = document.getElementById('txt-prob1');
+        const consoleLog = document.getElementById('console-log');
+        const runBtn = document.getElementById('runBtn');
+
+        runBtn.addEventListener('click', async () => {
+            consoleLog.innerText = "> Enviando vector a AWS Lambda...";
+            
+
+            qubit.innerText = "Calculando...";
+            qubit.style.opacity = "0.7";
+
+            try {
+           
+                const response = await fetch(LAMBDA_URL);
+                const probs = await response.json();
+  
+                setTimeout(() => {
+                    // 1. Transformamos la Esfera
+                    qubit.classList.add('superposition');
+                    qubit.innerHTML = "&Psi;"; // Símbolo Psi (Función de onda)
+                    qubit.style.opacity = "1";
+
+                    // 2. Actualizamos las barras al 50/50
+                    bar0.style.width = "50%";
+                    bar1.style.width = "50%";
+                    bar0.classList.add('super');
+                    bar1.classList.add('super');
+
+                    // 3. Actualizamos los textos
+                    txt0.innerText = "50";
+                    txt1.innerText = "50";
+
+                    consoleLog.innerText = "> Respuesta de AWS: ¡Qubit en Superposición Perfecta!";
+                    consoleLog.style.color = "#ff9900";
+                    
+                    runBtn.innerText = "Simulación Completada";
+                    runBtn.disabled = true;
+                }, 1000);
+                
+            } catch (error) {
+                consoleLog.innerText = "> Error conectando con la nube.";
+                consoleLog.style.color = "#ff7b72";
+            }
+        });
+    </script>
+</body>
+</html>
